@@ -518,6 +518,405 @@ for lbl, color, lx in [('Statistical (Ch.3)', TEAL, 0.5),
 
 
 # ═══════════════════════════════════════════════════════════════
+# MODEL DEEP-DIVE HELPER
+# ═══════════════════════════════════════════════════════════════
+
+def model_slide_fig(title, subtitle, accent_color,
+                    fig_path,
+                    theory_lines, param_lines, metric_lines):
+    """
+    Split layout: left = figure, right = theory + params + metrics panel.
+    fig_path  — path to feature-importance or relevant chart
+    theory_lines — list of short strings (what/how the model works)
+    param_lines  — list of 'param: value' strings (best hyperparams)
+    metric_lines — list of 'Metric: val' strings
+    """
+    slide = prs.slides.add_slide(BLANK)
+    header(slide, title, subtitle)
+
+    # accent left bar override
+    rect(slide, 0, 0, 0.30, 7.50, fill=accent_color)
+
+    # figure — left 62%
+    img(slide, fig_path, l=0.45, t=1.22, w=7.9)
+
+    # right panel
+    px, pw = 8.55, 4.65
+    rect(slide, px, 1.22, pw, 6.05, fill=PANEL)
+
+    # Theory block
+    rect(slide, px, 1.22, pw, 0.42, fill=accent_color)
+    txt(slide, 'How it works',
+        l=px+0.15, t=1.25, w=pw-0.2, h=0.34,
+        size=12, bold=True, color=NAVY if accent_color == GOLD else WHITE)
+    for i, line in enumerate(theory_lines):
+        txt(slide, f'▸  {line}',
+            l=px+0.18, t=1.70+i*0.40, w=pw-0.3, h=0.38,
+            size=11, color=WHITE, wrap=True)
+
+    # divider
+    sep1 = 1.70 + len(theory_lines)*0.40 + 0.10
+    rect(slide, px+0.2, sep1, pw-0.4, 0.03, fill=accent_color)
+
+    # Hyperparams block
+    txt(slide, 'Best Hyperparameters',
+        l=px+0.15, t=sep1+0.08, w=pw-0.2, h=0.34,
+        size=12, bold=True, color=GOLD)
+    for i, line in enumerate(param_lines):
+        txt(slide, line,
+            l=px+0.18, t=sep1+0.48+i*0.38, w=pw-0.3, h=0.36,
+            size=11, color=LIGHTGRAY, wrap=True)
+
+    # divider
+    sep2 = sep1 + 0.48 + len(param_lines)*0.38 + 0.10
+    rect(slide, px+0.2, sep2, pw-0.4, 0.03, fill=accent_color)
+
+    # Metrics block
+    txt(slide, 'Test Set Performance',
+        l=px+0.15, t=sep2+0.08, w=pw-0.2, h=0.34,
+        size=12, bold=True, color=GOLD)
+    for i, line in enumerate(metric_lines):
+        k, v = line.split(':', 1)
+        txt(slide, k + ':', l=px+0.18, t=sep2+0.48+i*0.38,
+            w=1.55, h=0.36, size=11, color=LIGHTGRAY)
+        txt(slide, v.strip(), l=px+1.75, t=sep2+0.48+i*0.38,
+            w=pw-1.9, h=0.36, size=11, bold=True, color=WHITE)
+
+    return slide
+
+
+def model_slide_noimg(title, subtitle, accent_color,
+                      theory_lines, param_lines, metric_lines,
+                      extra_lines=None):
+    """
+    Full-width text layout for models without a standalone figure.
+    Two columns: theory (left) | params + metrics (right).
+    """
+    slide = prs.slides.add_slide(BLANK)
+    header(slide, title, subtitle)
+    rect(slide, 0, 0, 0.30, 7.50, fill=accent_color)
+
+    # Left column — theory
+    lw = 6.15
+    rect(slide, 0.45, 1.22, lw, 6.05, fill=PANEL)
+    rect(slide, 0.45, 1.22, lw, 0.42, fill=accent_color)
+    txt(slide, 'How it works',
+        l=0.60, t=1.25, w=lw-0.2, h=0.34,
+        size=13, bold=True, color=NAVY if accent_color == GOLD else WHITE)
+    for i, line in enumerate(theory_lines):
+        txt(slide, f'▸  {line}',
+            l=0.65, t=1.75+i*0.50, w=lw-0.25, h=0.48,
+            size=12, color=WHITE, wrap=True)
+
+    # Right column — params + metrics
+    rx, rw = 6.75, 6.45
+    rect(slide, rx, 1.22, rw, 6.05, fill=NAVY)
+
+    rect(slide, rx, 1.22, rw, 0.42, fill=accent_color)
+    txt(slide, 'Best Hyperparameters',
+        l=rx+0.15, t=1.25, w=rw-0.2, h=0.34,
+        size=13, bold=True, color=NAVY if accent_color == GOLD else WHITE)
+    for i, line in enumerate(param_lines):
+        txt(slide, line, l=rx+0.20, t=1.75+i*0.48,
+            w=rw-0.3, h=0.44, size=12, color=LIGHTGRAY, wrap=True)
+
+    sep = 1.75 + len(param_lines)*0.48 + 0.15
+    rect(slide, rx+0.2, sep, rw-0.4, 0.03, fill=accent_color)
+
+    txt(slide, 'Test Set Performance',
+        l=rx+0.15, t=sep+0.10, w=rw-0.2, h=0.34,
+        size=13, bold=True, color=GOLD)
+    for i, line in enumerate(metric_lines):
+        k, v = line.split(':', 1)
+        txt(slide, k + ':', l=rx+0.20, t=sep+0.55+i*0.46,
+            w=2.0, h=0.40, size=12, color=LIGHTGRAY)
+        txt(slide, v.strip(), l=rx+2.25, t=sep+0.55+i*0.46,
+            w=rw-2.4, h=0.40, size=12, bold=True, color=WHITE)
+
+    if extra_lines:
+        sep2 = sep + 0.55 + len(metric_lines)*0.46 + 0.15
+        rect(slide, rx+0.2, sep2, rw-0.4, 0.03, fill=accent_color)
+        txt(slide, 'Notes',
+            l=rx+0.15, t=sep2+0.10, w=rw-0.2, h=0.34,
+            size=13, bold=True, color=GOLD)
+        for i, line in enumerate(extra_lines):
+            txt(slide, f'▸  {line}', l=rx+0.20, t=sep2+0.55+i*0.46,
+                w=rw-0.3, h=0.44, size=11, italic=True, color=LIGHTGRAY)
+
+    return slide
+
+
+# ═══════════════════════════════════════════════════════════════
+# 8 MODEL DEEP-DIVE SLIDES
+# ═══════════════════════════════════════════════════════════════
+
+# 1 — LOGISTIC REGRESSION
+model_slide_fig(
+    'Logistic Regression',
+    'Baseline statistical classifier — sigmoid link function, MLE estimation  (STAT-654 Ch. 3)',
+    TEAL,
+    FIG+'fi_lr.png',
+    theory_lines=[
+        'Models p(Y=1|X) = eᶿᵀˣ / (1 + eᶿᵀˣ)',
+        'Log-odds (logit) is linear in X',
+        'Coefficients estimated via MLE',
+        'β₁ = change in log-odds per unit X',
+        'Regularization via C = 1/λ',
+    ],
+    param_lines=[
+        'Penalty : L2  (default)',
+        'C (inv. λ) : 1.0',
+        'Solver : lbfgs',
+        'Max iterations : 1000',
+        'CV folds : 5  (F1 scoring)',
+    ],
+    metric_lines=[
+        'Accuracy : 0.792',
+        'Precision : 0.808',
+        'Recall : 0.576',
+        'F1-Score : 0.673',
+        'ROC-AUC : 0.862',
+        'Train time : 5.4 s',
+    ],
+)
+
+# 2 — PROBIT REGRESSION
+model_slide_noimg(
+    'Probit Regression',
+    'Normal CDF link function — theoretically equivalent to latent variable model  (STAT-654 Ch. 3)',
+    TEAL,
+    theory_lines=[
+        'p(Y=1|X) = Φ(XᵀΒ)  where Φ = normal CDF',
+        'Latent variable: Y* = XᵀΒ + ε,  ε ~ N(0,1)',
+        'Y=1 if Y* > 0,  Y=0 otherwise',
+        'Coefficients estimated by MLE\n(Newton-Raphson optimization)',
+        'Nearly identical to logistic in practice;\ndiffers in tail behavior',
+    ],
+    param_lines=[
+        'Method : Newton-Raphson',
+        'Max iterations : 300',
+        'Fit via : statsmodels.Probit',
+        'No regularization (full MLE)',
+        'Threshold : 0.50 (default)',
+    ],
+    metric_lines=[
+        'Accuracy : ~0.790',
+        'F1-Score : ~0.670',
+        'ROC-AUC : ~0.860',
+        'Train time : < 60 s',
+    ],
+    extra_lines=[
+        'Probit & Logistic nearly indistinguishable\non hotel data — confirms Ch. 3 theory',
+        'Probit slightly heavier-tailed; useful when\nnormality assumption is appropriate',
+    ],
+)
+
+# 3 — L1 LASSO LOGISTIC
+model_slide_noimg(
+    'Logistic Regression — L1 (Lasso)',
+    'Sparse feature selection via ℓ₁ penalty  (STAT-654 Ch. 5)',
+    CRIMSON,
+    theory_lines=[
+        'Loss = Log-likelihood + λ Σ|βⱼ|',
+        'ℓ₁ penalty forces some βⱼ = exactly 0',
+        'Automatic variable selection built-in',
+        'Solved with coordinate descent (SAGA)',
+        'λ = 1/C;  larger λ → sparser model',
+        'Outperforms Ridge when few features\ntruly matter',
+    ],
+    param_lines=[
+        'Penalty : L1',
+        'Solver : SAGA',
+        'C search : [0.001, 0.01, 0.1, 1.0, 10.0]',
+        'Max iterations : 3000',
+        'CV folds : 5  (F1 scoring)',
+    ],
+    metric_lines=[
+        'Best C : (see notebook output)',
+        'Features zeroed : several (see nb)',
+        'F1-Score : competitive with LR',
+        'ROC-AUC : ~0.86',
+    ],
+    extra_lines=[
+        'Shrinkage path shows coefficients\nhitting zero as λ increases',
+        'Provides most interpretable subset\nof hotel booking features',
+    ],
+)
+
+# 4 — L2 RIDGE LOGISTIC
+model_slide_noimg(
+    'Logistic Regression — L2 (Ridge)',
+    'Smooth coefficient shrinkage — all features retained  (STAT-654 Ch. 5)',
+    CRIMSON,
+    theory_lines=[
+        'Loss = Log-likelihood + λ Σβⱼ²',
+        'ℓ₂ penalty shrinks all βⱼ → 0, never = 0',
+        'Handles correlated predictors well',
+        'Scale invariant after standardization',
+        'Predictors must be standardized first',
+        'Better than L1 when many features\nhave small-but-real effects',
+    ],
+    param_lines=[
+        'Penalty : L2',
+        'Solver : lbfgs',
+        'C search : [0.001, 0.01, 0.1, 1.0, 10.0]',
+        'Max iterations : 3000',
+        'CV folds : 5  (F1 scoring)',
+    ],
+    metric_lines=[
+        'Best C : (see notebook output)',
+        'Features zeroed : 0 (Ridge retains all)',
+        'F1-Score : comparable to baseline LR',
+        'ROC-AUC : ~0.86',
+    ],
+    extra_lines=[
+        'Ridge & standard LR converge at high C',
+        'Useful when multicollinearity present\namong hotel booking features',
+    ],
+)
+
+# 5 — PCA + LR
+model_slide_noimg(
+    'PCA + Logistic Regression',
+    'Dimensionality reduction then classification  (STAT-654 Ch. 5)',
+    CRIMSON,
+    theory_lines=[
+        'PCA finds M orthogonal directions of\nmaximum variance in feature space',
+        'Z₁ = φ₁₁X₁ + φ₂₁X₂ + … + φₚ₁Xₚ  (1st PC)',
+        'Each Zⱼ is uncorrelated with others',
+        'LR fit on Z₁…Zₘ instead of raw features',
+        'Removes multicollinearity by design',
+        'sklearn Pipeline: PCA → StandardLR',
+    ],
+    param_lines=[
+        'n_components search : [10, 15, 20, 25]',
+        'LR C search : [0.1, 1.0, 10.0]',
+        'Solver : lbfgs',
+        'CV folds : 5  (F1 scoring)',
+        'Features standardized before PCA',
+    ],
+    metric_lines=[
+        'Best n_components : (see notebook)',
+        'Variance explained : 90%+ typical',
+        'F1-Score : slight drop vs full LR',
+        'ROC-AUC : ~0.85',
+    ],
+    extra_lines=[
+        'Trade-off: interpretability lost\n(PCs are linear combos, not raw features)',
+        'Useful when p is large or features\nare heavily collinear',
+    ],
+)
+
+# 6 — DECISION TREE
+model_slide_fig(
+    'Decision Tree',
+    'Fully interpretable recursive binary splitting  (STAT-654 Ch. 3)',
+    GOLD,
+    FIG+'fi_dt.png',
+    theory_lines=[
+        'Splits feature space into rectangular\nregions by minimizing impurity',
+        'Impurity: Gini = 1 − Σpₖ²  or Entropy',
+        'Greedy top-down recursive partitioning',
+        'Pruned via max_depth / min_samples',
+        'Fully white-box — human-readable rules',
+    ],
+    param_lines=[
+        'Criterion : entropy (best CV)',
+        'max_depth : tuned [5, 10, 15, None]',
+        'min_samples_split : tuned [2,10,20]',
+        'min_samples_leaf : tuned [1, 5, 10]',
+        'CV folds : 5  (F1 scoring)',
+    ],
+    metric_lines=[
+        'Accuracy : 0.841',
+        'Precision : 0.782',
+        'Recall : 0.794',
+        'F1-Score : 0.788',
+        'ROC-AUC : 0.834',
+        'Train time : 37.5 s',
+    ],
+)
+
+# 7 — RANDOM FOREST
+model_slide_fig(
+    'Random Forest',
+    'Ensemble of trees via bagging + random feature subsets',
+    GOLD,
+    FIG+'fi_rf.png',
+    theory_lines=[
+        'Builds B trees on bootstrap samples',
+        'Each split considers only √p features\n(reduces correlation between trees)',
+        'Final prediction = majority vote',
+        'Variance reduced vs single tree\nwith minimal bias increase',
+        'Feature importance = avg impurity drop',
+    ],
+    param_lines=[
+        'n_estimators : 200',
+        'max_depth : None (fully grown)',
+        'max_features : sqrt',
+        'min_samples_split : 2',
+        'CV folds : 5  (F1 scoring)',
+    ],
+    metric_lines=[
+        'Accuracy : 0.887',
+        'Precision : 0.885',
+        'Recall : 0.799',
+        'F1-Score : 0.840',
+        'ROC-AUC : 0.953',
+        'Train time : 324.6 s',
+    ],
+)
+
+# 8 — GRADIENT BOOSTING
+model_slide_fig(
+    'Gradient Boosting',
+    'Sequential additive ensemble — each tree corrects the previous residuals',
+    GOLD,
+    FIG+'fi_gb.png',
+    theory_lines=[
+        'Fit tree hₘ(x) to residuals of Fₘ₋₁(x)',
+        'Update: Fₘ(x) = Fₘ₋₁(x) + η·hₘ(x)',
+        'η = learning rate (shrinkage)',
+        'Shallow trees (depth 3–5) preferred\nto control variance',
+        'Subsample < 1 adds stochasticity\n(stochastic gradient boosting)',
+    ],
+    param_lines=[
+        'n_estimators : 200',
+        'learning_rate : 0.1',
+        'max_depth : 5',
+        'subsample : 0.8',
+        'CV folds : 5  (F1 scoring)',
+    ],
+    metric_lines=[
+        'Accuracy : 0.876',
+        'Precision : 0.857',
+        'Recall : 0.798',
+        'F1-Score : 0.826',
+        'ROC-AUC : 0.948',
+        'Train time : 1163 s',
+    ],
+)
+
+# 9 — COMPUTATIONAL COST
+viz_slide(
+    'Computational Cost Comparison',
+    'Total training + grid search time across all models',
+    FIG+'training_time.png',
+    bullets=[
+        'Logistic: fastest (5 s)',
+        'Probit: < 60 s (no CV)',
+        'L1 / L2: ~minutes (SAGA)',
+        'Decision Tree: 37 s',
+        'Random Forest: 5 min',
+        'Gradient Boosting: 20 min',
+        'Accuracy/cost trade-off\nfavors RF for production',
+    ],
+    insight_title='Speed vs Perf.',
+    insight_color=TEAL,
+    fig_w=9.8,
+)
+
+# ═══════════════════════════════════════════════════════════════
 # MODELLING SLIDES — one figure each
 # ═══════════════════════════════════════════════════════════════
 
